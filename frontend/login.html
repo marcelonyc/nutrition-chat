@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Nutrition Chat</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg: #0c1220;
+            --card: #1a2332;
+            --border: #1f2937;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --error: #ef4444;
+            --success: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0c1220 0%, #1a2332 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .form {
+            display: none;
+        }
+
+        .form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+
+        .toggle-password:hover {
+            color: var(--text);
+        }
+
+        .password-strength {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: all 0.3s;
+            border-radius: 2px;
+        }
+
+        .strength-weak .strength-fill {
+            width: 33%;
+            background: var(--error);
+        }
+
+        .strength-medium .strength-fill {
+            width: 66%;
+            background: #f59e0b;
+        }
+
+        .strength-strong .strength-fill {
+            width: 100%;
+            background: var(--success);
+        }
+
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .requirement {
+            padding: 2px 0;
+        }
+
+        .requirement.met {
+            color: var(--success);
+        }
+
+        .requirement::before {
+            content: '○ ';
+        }
+
+        .requirement.met::before {
+            content: '✓ ';
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            margin: 20px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            background: var(--card);
+            padding: 0 10px;
+            position: relative;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .remember-me label {
+            margin: 0;
+            font-weight: normal;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+            }
+
+            .logo h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🥗 Nutrition Chat</h1>
+            <p>Your AI-powered nutrition assistant</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="login">Login</button>
+            <button class="tab" data-tab="register">Register</button>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="form active">
+            <div class="form-group">
+                <label for="login-username">Username or Email</label>
+                <input type="text" id="login-username" name="username" placeholder="Enter your username or email"
+                    required autocomplete="username" />
+            </div>
+
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="login-password" name="password" placeholder="Enter your password"
+                        required autocomplete="current-password" />
+                    <button type="button" class="toggle-password" data-target="login-password">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="remember-me">
+                <input type="checkbox" id="remember-me" />
+                <label for="remember-me">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn" id="login-btn">Login</button>
+
+            <div class="link">
+                <a href="#" id="forgot-password-link">Forgot password?</a>
+            </div>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="form">
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" name="email" placeholder="your@email.com" required
+                    autocomplete="email" />
+            </div>
+
+            <div class="form-group">
+                <label for="register-username">Username</label>
+                <input type="text" id="register-username" name="username" placeholder="Choose a username" required
+                    autocomplete="username" minlength="3" />
+            </div>
+
+            <div class="form-group">
+                <label for="register-fullname">Full Name (Optional)</label>
+                <input type="text" id="register-fullname" name="full_name" placeholder="Your full name"
+                    autocomplete="name" />
+            </div>
+
+            <div class="form-group">
+                <label for="register-password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="register-password" name="password" placeholder="Create a strong password"
+                        required autocomplete="new-password" />
+                    <button type="button" class="toggle-password" data-target="register-password">
+                        👁️
+                    </button>
+                </div>
+                <div class="password-strength" id="password-strength" style="display: none;">
+                    <div class="strength-bar">
+                        <div class="strength-fill"></div>
+                    </div>
+                </div>
+                <div class="password-requirements" id="password-requirements">
+                    <div class="requirement" data-requirement="length">At least 8 characters</div>
+                    <div class="requirement" data-requirement="uppercase">One uppercase letter</div>
+                    <div class="requirement" data-requirement="lowercase">One lowercase letter</div>
+                    <div class="requirement" data-requirement="number">One number</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="register-confirm-password">Confirm Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="register-confirm-password" name="confirm_password"
+                        placeholder="Re-enter your password" required autocomplete="new-password" />
+                    <button type="button" class="toggle-password" data-target="register-confirm-password">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="register-btn">Create Account</button>
+        </form>
+
+        <!-- Password Reset Form (hidden by default) -->
+        <form id="reset-form" class="form" style="display: none;">
+            <div class="form-group">
+                <label for="reset-email">Email Address</label>
+                <input type="email" id="reset-email" name="email" placeholder="your@email.com" required />
+            </div>
+
+            <button type="submit" class="btn" id="reset-btn">Send Reset Link</button>
+            <button type="button" class="btn btn-secondary" id="back-to-login">Back to Login</button>
+        </form>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+
+                tab.classList.add('active');
+                const formId = tab.dataset.tab + '-form';
+                document.getElementById(formId).classList.add('active');
+
+                clearMessages();
+            });
+        });
+
+        // Password visibility toggle
+        document.querySelectorAll('.toggle-password').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.target);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    btn.textContent = '👁️';
+                }
+            });
+        });
+
+        // Password strength indicator
+        const registerPassword = document.getElementById('register-password');
+        const strengthIndicator = document.getElementById('password-strength');
+        const requirements = document.querySelectorAll('.requirement');
+
+        registerPassword.addEventListener('input', () => {
+            const password = registerPassword.value;
+
+            if (password.length === 0) {
+                strengthIndicator.style.display = 'none';
+                requirements.forEach(r => r.classList.remove('met'));
+                return;
+            }
+
+            strengthIndicator.style.display = 'block';
+
+            // Check requirements
+            const checks = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password)
+            };
+
+            requirements.forEach(req => {
+                const requirement = req.dataset.requirement;
+                if (checks[requirement]) {
+                    req.classList.add('met');
+                } else {
+                    req.classList.remove('met');
+                }
+            });
+
+            // Calculate strength
+            const metCount = Object.values(checks).filter(Boolean).length;
+            strengthIndicator.className = 'password-strength';
+
+            if (metCount <= 2) {
+                strengthIndicator.classList.add('strength-weak');
+            } else if (metCount === 3) {
+                strengthIndicator.classList.add('strength-medium');
+            } else {
+                strengthIndicator.classList.add('strength-strong');
+            }
+        });
+
+        // Message helpers
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function clearMessages() {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Extract a human-friendly error message from API error payloads
+        function getErrorMessage(data) {
+            if (!data) return 'Request failed';
+            if (typeof data === 'string') return data;
+            if (data.detail !== undefined) {
+                const d = data.detail;
+                if (typeof d === 'string') return d;
+                if (Array.isArray(d)) {
+                    const msgs = d
+                        .map(item => item?.msg ?? (typeof item === 'string' ? item : null))
+                        .filter(Boolean);
+                    if (msgs.length) return msgs.join(', ');
+                    try { return JSON.stringify(d); } catch { return 'Request failed'; }
+                }
+                if (typeof d === 'object' && d !== null) {
+                    if (d.msg) return d.msg;
+                    try { return JSON.stringify(d); } catch { return 'Request failed'; }
+                }
+            }
+            try { return JSON.stringify(data); } catch { return 'Request failed'; }
+        }
+
+        // Login form submission
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearMessages();
+
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+
+            const formData = new FormData();
+            formData.append('username', document.getElementById('login-username').value);
+            formData.append('password', document.getElementById('login-password').value);
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.access_token);
+                    if (document.getElementById('remember-me').checked) {
+                        localStorage.setItem('remember', 'true');
+                    }
+                    showSuccess('Login successful! Redirecting...');
+                    setTimeout(() => window.location.href = '/', 500);
+                } else {
+                    showError(getErrorMessage(data) || 'Login failed');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        });
+
+        // Register form submission
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearMessages();
+
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            const btn = document.getElementById('register-btn');
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+
+            const payload = {
+                email: document.getElementById('register-email').value,
+                username: document.getElementById('register-username').value,
+                password: password,
+                full_name: document.getElementById('register-fullname').value || null
+            };
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('Account created! Please log in.');
+                    setTimeout(() => {
+                        document.querySelector('[data-tab="login"]').click();
+                        document.getElementById('login-username').value = payload.username;
+                    }, 1500);
+                } else {
+                    showError(getErrorMessage(data) || 'Registration failed');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        });
+
+        // Password reset
+        document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.form').forEach(f => f.style.display = 'none');
+            document.getElementById('reset-form').style.display = 'block';
+            clearMessages();
+        });
+
+        document.getElementById('back-to-login').addEventListener('click', () => {
+            document.getElementById('reset-form').style.display = 'none';
+            document.getElementById('login-form').classList.add('active');
+            document.getElementById('login-form').style.display = 'block';
+            clearMessages();
+        });
+
+        document.getElementById('reset-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearMessages();
+
+            const btn = document.getElementById('reset-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            const payload = {
+                email: document.getElementById('reset-email').value
+            };
+
+            try {
+                const response = await fetch('/api/auth/request-password-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('If an account exists with that email, reset instructions have been sent.');
+                } else {
+                    showError(getErrorMessage(data) || 'Failed to send reset email');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+
+</html>

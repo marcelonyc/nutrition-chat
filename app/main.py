@@ -2,17 +2,25 @@ from pathlib import Path
 from typing import List
 import csv
 import io
+from datetime import timedelta
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, File
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import Base, engine, get_db
-from app import crud, schemas
+from app import crud, schemas, models
 from app.llm import LLMService
+from app.auth import (
+    get_current_active_user,
+    create_access_token,
+    verify_password,
+    validate_password_strength
+)
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
@@ -33,8 +41,220 @@ if settings.database_url.startswith("sqlite"):
 
 Base.metadata.create_all(bind=engine)
 
+# Create admin user if configured
+def create_admin_user():
+    """Create admin user on startup if configured in .env"""
+    if settings.admin_email and settings.admin_user and settings.admin_password:
+        db = next(get_db())
+        try:
+            existing = crud.get_user_by_email(db, settings.admin_email)
+            if not existing:
+                crud.create_user(
+                    db,
+                    email=settings.admin_email,
+                    username=settings.admin_user,
+                    password=settings.admin_password,
+                    full_name="Administrator"
+                )
+                print(f"✓ Admin user created: {settings.admin_user}")
+            else:
+                print(f"✓ Admin user exists: {settings.admin_user}")
+        finally:
+            db.close()
+
+create_admin_user()
+
 llm_service = LLMService(settings)
 
+
+# ============================================================================
+# Authentication Endpoints
+# ============================================================================
+
+@app.post("/api/auth/register", response_model=schemas.UserResponse)
+def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Register a new user account."""
+    # Check if email already exists
+    if crud.get_user_by_email(db, user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Check if username already exists
+    if crud.get_user_by_username(db, user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken"
+        )
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(user_data.password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+    
+    # Create user
+    user = crud.create_user(
+        db,
+        email=user_data.email,
+        username=user_data.username,
+        password=user_data.password,
+        full_name=user_data.full_name
+    )
+    
+    return user
+
+
+@app.post("/api/auth/login", response_model=schemas.Token)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    """Login and receive JWT access token."""
+    user = crud.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user account"
+        )
+    
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=schemas.UserProfile)
+def get_current_user_info(
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """Get current authenticated user information."""
+    return current_user
+
+
+@app.put("/api/auth/profile", response_model=schemas.UserProfile)
+def update_profile(
+    profile_data: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile information."""
+    # Check email uniqueness if changing
+    if profile_data.email and profile_data.email != current_user.email:
+        existing = crud.get_user_by_email(db, profile_data.email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use"
+            )
+    
+    # Check username uniqueness if changing
+    if profile_data.username and profile_data.username != current_user.username:
+        existing = crud.get_user_by_username(db, profile_data.username)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+    
+    user = crud.update_user(
+        db,
+        current_user,
+        email=profile_data.email,
+        username=profile_data.username,
+        full_name=profile_data.full_name
+    )
+    
+    return user
+
+
+@app.post("/api/auth/change-password")
+def change_password(
+    password_data: schemas.PasswordChange,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Change user password."""
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Validate new password strength
+    is_valid, error_msg = validate_password_strength(password_data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+    
+    crud.change_password(db, current_user, password_data.new_password)
+    
+    return {"message": "Password changed successfully"}
+
+
+@app.post("/api/auth/request-password-reset")
+def request_password_reset(
+    request_data: schemas.PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """Request a password reset token (in production, send via email)."""
+    user = crud.get_user_by_email(db, request_data.email)
+    
+    # Always return success to prevent email enumeration
+    if user:
+        token = crud.create_password_reset_token(db, user)
+        # In production, send this token via email
+        # For now, return it (NOT SECURE FOR PRODUCTION)
+        return {
+            "message": "Password reset instructions sent to email",
+            "token": token  # Remove this in production
+        }
+    
+    return {"message": "Password reset instructions sent to email"}
+
+
+@app.post("/api/auth/reset-password")
+def reset_password(
+    reset_data: schemas.PasswordReset,
+    db: Session = Depends(get_db)
+):
+    """Reset password using a valid token."""
+    # Validate new password strength
+    is_valid, error_msg = validate_password_strength(reset_data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+    
+    user = crud.reset_password_with_token(db, reset_data.token, reset_data.new_password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    return {"message": "Password reset successfully"}
+
+
+# ============================================================================
+# Configuration Endpoints
+# ============================================================================
 
 @app.get("/api/config")
 def get_config():
@@ -45,22 +265,36 @@ def get_config():
     }
 
 
+# ============================================================================
+# Chat Endpoints (Protected)
+# ============================================================================
+
 @app.get("/api/chats", response_model=List[schemas.ChatRead])
-def list_chats(db: Session = Depends(get_db)):
-    return crud.list_chats(db)
+def list_chats(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    return crud.list_chats(db, user_id=current_user.id)
 
 
 @app.post("/api/chats", response_model=schemas.ChatRead)
-def create_chat(payload: schemas.ChatCreate, db: Session = Depends(get_db)):
-    chat = crud.create_chat(db, title=payload.title)
+def create_chat(
+    payload: schemas.ChatCreate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    chat = crud.create_chat(db, user_id=current_user.id, title=payload.title)
     return chat
 
 
 @app.patch("/api/chats/{chat_id}", response_model=schemas.ChatRead)
 def rename_chat(
-    chat_id: int, payload: schemas.ChatCreate, db: Session = Depends(get_db)
+    chat_id: int,
+    payload: schemas.ChatCreate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
-    chat = crud.get_chat(db, chat_id)
+    chat = crud.get_chat(db, chat_id, user_id=current_user.id)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
     if not payload.title:
@@ -70,8 +304,12 @@ def rename_chat(
 
 
 @app.delete("/api/chats/{chat_id}")
-def delete_chat(chat_id: int, db: Session = Depends(get_db)):
-    chat = crud.get_chat(db, chat_id)
+def delete_chat(
+    chat_id: int,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    chat = crud.get_chat(db, chat_id, user_id=current_user.id)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
     crud.delete_chat(db, chat)
@@ -81,8 +319,12 @@ def delete_chat(chat_id: int, db: Session = Depends(get_db)):
 @app.get(
     "/api/chats/{chat_id}/messages", response_model=List[schemas.MessageRead]
 )
-def get_messages(chat_id: int, db: Session = Depends(get_db)):
-    chat = crud.get_chat(db, chat_id)
+def get_messages(
+    chat_id: int,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    chat = crud.get_chat(db, chat_id, user_id=current_user.id)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
     return crud.list_messages(db, chat_id)
@@ -90,9 +332,12 @@ def get_messages(chat_id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/chats/{chat_id}/messages")
 def send_message(
-    chat_id: int, payload: schemas.MessageCreate, db: Session = Depends(get_db)
+    chat_id: int,
+    payload: schemas.MessageCreate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
-    chat = crud.get_chat(db, chat_id)
+    chat = crud.get_chat(db, chat_id, user_id=current_user.id)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
@@ -101,8 +346,8 @@ def send_message(
         db, chat, role="user", content=payload.content
     )
 
-    # Get ingredient data for context
-    ingredients = crud.list_ingredients(db)
+    # Get ingredient data for context (user-specific)
+    ingredients = crud.list_ingredients(db, user_id=current_user.id)
 
     assistant_reply = llm_service.chat(
         [*history, user_message], payload.content, ingredients=ingredients
@@ -118,8 +363,16 @@ def send_message(
     }
 
 
+# ============================================================================
+# Ingredient Endpoints (Protected)
+# ============================================================================
+
 @app.post("/api/ingredients/upload")
-async def upload_ingredients(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_ingredients(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """Upload CSV file with ingredient data. Overwrites existing data."""
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -148,9 +401,9 @@ async def upload_ingredients(file: UploadFile = File(...), db: Session = Depends
             except (ValueError, KeyError) as e:
                 raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
         
-        # Clear existing and save new
-        crud.clear_ingredients(db)
-        crud.bulk_create_ingredients(db, ingredients_data)
+        # Clear existing and save new (user-specific)
+        crud.clear_ingredients(db, user_id=current_user.id)
+        crud.bulk_create_ingredients(db, user_id=current_user.id, ingredients_data=ingredients_data)
         
         return {"message": f"Successfully uploaded {len(ingredients_data)} ingredients", "count": len(ingredients_data)}
     
@@ -161,9 +414,12 @@ async def upload_ingredients(file: UploadFile = File(...), db: Session = Depends
 
 
 @app.get("/api/ingredients/download")
-def download_ingredients(db: Session = Depends(get_db)):
+def download_ingredients(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """Download ingredient data as CSV"""
-    ingredients = crud.list_ingredients(db)
+    ingredients = crud.list_ingredients(db, user_id=current_user.id)
     
     # Create CSV in memory
     output = io.StringIO()
@@ -182,11 +438,18 @@ def download_ingredients(db: Session = Depends(get_db)):
 
 
 @app.get("/api/ingredients/count")
-def get_ingredients_count(db: Session = Depends(get_db)):
+def get_ingredients_count(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """Get count of loaded ingredients"""
-    ingredients = crud.list_ingredients(db)
+    ingredients = crud.list_ingredients(db, user_id=current_user.id)
     return {"count": len(ingredients)}
 
+
+# ============================================================================
+# Static Frontend
+# ============================================================================
 
 # Serve frontend assets
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"

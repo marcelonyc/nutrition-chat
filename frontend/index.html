@@ -76,6 +76,74 @@
             flex-shrink: 0;
         }
 
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-email {
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-logout {
+            background: var(--danger);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-logout:hover {
+            opacity: 0.8;
+        }
+
         .btn {
             border: none;
             border-radius: 10px;
@@ -578,6 +646,16 @@
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <aside class="sidebar" id="sidebar">
         <div class="brand">Nutrition Chat</div>
+        <div class="user-profile" id="user-profile">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">👤</div>
+                <div class="user-details">
+                    <div class="user-name" id="user-name">Loading...</div>
+                    <div class="user-email" id="user-email"></div>
+                </div>
+            </div>
+            <button class="btn-logout" id="logout-btn" title="Logout">🚪</button>
+        </div>
         <button class="btn" id="new-chat">+ New Chat</button>
         <div class="chat-list" id="chat-list"></div>
         <div class="ingredients-section">
@@ -618,6 +696,97 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <script>
+        // ============================================================================
+        // Authentication
+        // ============================================================================
+
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function isAuthenticated() {
+            return !!getToken();
+        }
+
+        function redirectToLogin() {
+            window.location.href = '/login.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('remember');
+            redirectToLogin();
+        }
+
+        async function apiCall(url, options = {}) {
+            const token = getToken();
+            if (!token) {
+                redirectToLogin();
+                return;
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...(options.headers || {})
+            };
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    logout();
+                    return null;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await apiCall('/api/auth/me');
+                if (!response) return;
+
+                const user = await response.json();
+
+                const avatar = document.getElementById('user-avatar');
+                const userName = document.getElementById('user-name');
+                const userEmail = document.getElementById('user-email');
+
+                if (user.username) {
+                    avatar.textContent = user.username.charAt(0).toUpperCase();
+                    userName.textContent = user.full_name || user.username;
+                    userEmail.textContent = user.email;
+                }
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+
+        // Check authentication on load
+        if (!isAuthenticated()) {
+            redirectToLogin();
+        }
+
+        // Logout button
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                logout();
+            }
+        });
+
+        // ============================================================================
+        // Application Logic
+        // ============================================================================
+
         const chatList = document.getElementById('chat-list');
         const messagesEl = document.getElementById('messages');
         const form = document.getElementById('chat-form');
@@ -696,26 +865,20 @@
 
         async function loadConfig() {
             try {
-                const config = await api('/api/config');
+                const response = await fetch('/api/config');
+                const config = await response.json();
                 document.getElementById('model-name').textContent = config.model;
                 document.getElementById('api-base').textContent = config.api_base;
             } catch (err) {
                 console.error('Failed to load config:', err);
             }
         }
+
         async function loadIngredientCount() {
             try {
-                const data = await api('/api/ingredients/count');
-                const countEl = document.getElementById('ingredient-count');
-                countEl.textContent = data.count > 0 ? `${data.count} ingredients loaded` : 'No data loaded';
-            } catch (err) {
-                console.error('Failed to load ingredient count:', err);
-                document.getElementById('ingredient-count').textContent = 'Error loading count';
-            }
-        }
-        async function loadIngredientCount() {
-            try {
-                const data = await api('/api/ingredients/count');
+                const response = await apiCall('/api/ingredients/count');
+                if (!response) return;
+                const data = await response.json();
                 const countEl = document.getElementById('ingredient-count');
                 countEl.textContent = data.count > 0 ? `${data.count} ingredients loaded` : 'No data loaded';
             } catch (err) {
@@ -725,7 +888,20 @@
         }
 
         async function api(path, options = {}) {
-            const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+            const token = getToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...(options.headers || {})
+            };
+
+            const res = await fetch(path, { ...options, headers });
+
+            if (res.status === 401) {
+                logout();
+                return null;
+            }
+
             if (!res.ok) throw new Error(await res.text());
             return res.headers.get('content-type')?.includes('json') ? res.json() : res.text();
         }
@@ -833,6 +1009,8 @@
             const content = input.value.trim();
             if (!content) return;
             input.value = '';
+
+            // Show user message immediately
             const userBubble = document.createElement('div');
             userBubble.className = 'bubble user';
             userBubble.textContent = content;
@@ -844,22 +1022,14 @@
             loadingBubble.className = 'bubble loading';
             const loadingText = document.createElement('span');
             loadingText.className = 'loading-dots';
-            loadingText.textContent = 'Waiting for a response';
+            loadingText.textContent = 'Waiting for response';
             loadingBubble.appendChild(loadingText);
             messagesEl.appendChild(loadingBubble);
             messagesEl.scrollTop = messagesEl.scrollHeight;
 
             try {
-                const { assistant_message } = await sendMessage(content);
-                // Remove loading indicator
-                loadingBubble.remove();
-                const botBubble = document.createElement('div');
-                botBubble.className = 'bubble assistant';
-                // Render markdown for assistant message
-                const htmlContent = marked.parse(assistant_message);
-                botBubble.innerHTML = DOMPurify.sanitize(htmlContent);
-                messagesEl.appendChild(botBubble);
-                messagesEl.scrollTop = messagesEl.scrollHeight;
+                // sendMessage calls loadMessages which re-renders all messages from API
+                await sendMessage(content);
             } catch (err) {
                 loadingBubble.remove();
                 alert('Error sending message: ' + err.message);
@@ -874,14 +1044,28 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            const token = getToken();
+            if (!token) {
+                redirectToLogin();
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
 
             try {
                 const res = await fetch('/api/ingredients/upload', {
                     method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: formData
                 });
+
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
 
                 if (!res.ok) {
                     const error = await res.json();
@@ -899,8 +1083,24 @@
         };
 
         document.getElementById('download-btn').onclick = async () => {
+            const token = getToken();
+            if (!token) {
+                redirectToLogin();
+                return;
+            }
+
             try {
-                const res = await fetch('/api/ingredients/download');
+                const res = await fetch('/api/ingredients/download', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
+
                 if (!res.ok) throw new Error('Download failed');
 
                 const blob = await res.blob();
@@ -917,6 +1117,8 @@
             }
         };
 
+        // Initialize app
+        loadUserProfile();
         loadChats();
         loadConfig();
         loadIngredientCount();
