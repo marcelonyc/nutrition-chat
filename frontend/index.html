@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutrition Chat</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --card: #1f2937;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #38bdf8;
+            --danger: #f87171;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at 20% 20%, #12203a, #0b1224 55%);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .mobile-header {
+            display: none;
+            background: var(--panel);
+            padding: 12px 16px;
+            border-bottom: 1px solid #1f2937;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--panel);
+            padding: 16px;
+            border-right: 1px solid #1f2937;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.3s ease;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: var(--accent);
+            color: #0b1224;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 120ms ease, box-shadow 120ms ease;
+            flex-shrink: 0;
+        }
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .chat-list {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+            max-height: 60vh;
+        }
+
+        .ingredients-section {
+            padding-top: 12px;
+            border-top: 1px solid #1f2937;
+            flex-shrink: 0;
+            margin-top: 8px;
+        }
+
+        .ingredients-header {
+            position: relative;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--muted);
+            cursor: help;
+            user-select: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-content {
+            color: var(--text);
+        }
+
+        .tooltip-content strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-content ul {
+            margin: 6px 0;
+            padding-left: 18px;
+        }
+
+        .tooltip-content li {
+            margin: 3px 0;
+        }
+
+        .ingredients-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            border: 1px solid #293447;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: transparent;
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 120ms ease;
+            font-size: 13px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .ingredient-count {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .ingredients-section {
+            padding-top: 12px;
+            border-top: 1px solid #1f2937;
+            margin-top: 8px;
+        }
+
+        .ingredients-header {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--muted);
+        }
+
+        .ingredients-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            border: 1px solid #293447;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: transparent;
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 120ms ease;
+            font-size: 13px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .ingredient-count {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .chat-item {
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--card);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            border: 1px solid transparent;
+        }
+
+        .chat-item.active {
+            border-color: var(--accent);
+            background: #1b2435;
+        }
+
+        .chat-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1px solid #293447;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .icon-btn.danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .bubble {
+            max-width: 720px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            line-height: 1.6;
+            background: var(--card);
+            border: 1px solid #1f2937;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .bubble.user {
+            margin-left: auto;
+            background: #2b3547;
+        }
+
+        .bubble.assistant {
+            margin-right: auto;
+        }
+
+        .bubble.loading {
+            margin-right: auto;
+            background: var(--card);
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .bubble h1,
+        .bubble h2,
+        .bubble h3,
+        .bubble h4,
+        .bubble h5,
+        .bubble h6 {
+            margin: 12px 0 8px 0;
+            font-weight: 700;
+        }
+
+        .bubble h1 {
+            font-size: 1.5em;
+        }
+
+        .bubble h2 {
+            font-size: 1.3em;
+        }
+
+        .bubble h3 {
+            font-size: 1.1em;
+        }
+
+        .bubble ul,
+        .bubble ol {
+            margin: 8px 0;
+            padding-left: 24px;
+        }
+
+        .bubble li {
+            margin: 4px 0;
+        }
+
+        .bubble code {
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .bubble pre {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .bubble pre code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .bubble blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin: 8px 0;
+            color: var(--muted);
+        }
+
+        .bubble strong {
+            font-weight: 700;
+        }
+
+        .bubble em {
+            font-style: italic;
+        }
+
+        .bubble a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .bubble a:hover {
+            text-decoration: underline;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid #1f2937;
+            background: #0c1220;
+        }
+
+        footer {
+            padding: 8px 20px;
+            background: #0c1220;
+            border-top: 1px solid #1f2937;
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        footer span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        textarea {
+            flex: 1;
+            border-radius: 12px;
+            border: 1px solid #1f2937;
+            padding: 12px;
+            font-size: 15px;
+            background: #0f172a;
+            color: var(--text);
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1000;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+
+            .sidebar-overlay.visible {
+                display: block;
+            }
+
+            .tooltip {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                right: auto;
+                transform: translate(-50%, -50%);
+                max-width: 90%;
+                margin-top: 0;
+            }
+
+            .main {
+                flex: 1;
+                height: 100%;
+            }
+
+            .brand {
+                display: none;
+            }
+
+            .messages {
+                padding: 12px 16px;
+            }
+
+            .bubble {
+                max-width: 90%;
+            }
+
+            form {
+                padding: 12px 16px;
+            }
+
+            textarea {
+                font-size: 16px;
+                min-height: 50px;
+            }
+
+            footer {
+                padding: 6px 16px;
+                flex-direction: column;
+                gap: 4px;
+                font-size: 11px;
+            }
+
+            .btn {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .chat-item {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mobile-header">
+        <button class="hamburger" id="menu-toggle">☰</button>
+        <div class="mobile-brand">Nutrition Chat</div>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">Nutrition Chat</div>
+        <button class="btn" id="new-chat">+ New Chat</button>
+        <div class="chat-list" id="chat-list"></div>
+        <div class="ingredients-section">
+            <div class="ingredients-header" id="ingredients-header">
+                📊 Ingredient Data
+                <div class="tooltip" id="ingredients-tooltip">
+                    <div class="tooltip-content">
+                        <strong>📋 CSV Format Instructions:</strong>
+                        <ul>
+                            <li><strong>Columns:</strong> name, calories, protein, fat, carbohydrates</li>
+                            <li><strong>Values:</strong> Per gram nutritional data</li>
+                            <li><strong>Example:</strong> chicken breast,1.65,0.31,0.036,0</li>
+                        </ul>
+                        <strong>💡 Usage:</strong>
+                        Upload CSV to enable nutrition queries in chat. Download to export current data.
+                    </div>
+                </div>
+            </div>
+            <div class="ingredients-actions">
+                <button class="btn-secondary" id="upload-btn">📤 Upload CSV</button>
+                <button class="btn-secondary" id="download-btn">📥 Download CSV</button>
+                <input type="file" id="file-input" accept=".csv" />
+                <div class="ingredient-count" id="ingredient-count">Loading...</div>
+            </div>
+        </div>
+    </aside>
+    <main class="main">
+        <div class="messages" id="messages"></div>
+        <form id="chat-form">
+            <textarea id="input" placeholder="Ask something..." required></textarea>
+            <button class="btn" type="submit">Send</button>
+        </form>
+        <footer>
+            <span>🤖 Model: <strong id="model-name">Loading...</strong></span>
+            <span>🌐 API: <strong id="api-base">Loading...</strong></span>
+        </footer>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <script>
+        const chatList = document.getElementById('chat-list');
+        const messagesEl = document.getElementById('messages');
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('input');
+        let currentChatId = null;
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('visible');
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', toggleSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        }
+
+        // Tooltip for ingredients header
+        const ingredientsHeader = document.getElementById('ingredients-header');
+        const ingredientsTooltip = document.getElementById('ingredients-tooltip');
+        let tooltipTimeout;
+
+        if (ingredientsHeader && ingredientsTooltip) {
+            // Desktop hover
+            ingredientsHeader.addEventListener('mouseenter', () => {
+                clearTimeout(tooltipTimeout);
+                ingredientsTooltip.classList.add('show');
+            });
+
+            ingredientsHeader.addEventListener('mouseleave', () => {
+                tooltipTimeout = setTimeout(() => {
+                    ingredientsTooltip.classList.remove('show');
+                }, 200);
+            });
+
+            // Mobile tap
+            let tapTimer;
+            ingredientsHeader.addEventListener('touchstart', (e) => {
+                if (ingredientsTooltip.classList.contains('show')) {
+                    ingredientsTooltip.classList.remove('show');
+                } else {
+                    e.preventDefault();
+                    ingredientsTooltip.classList.add('show');
+                    // Auto-hide after 5 seconds on mobile
+                    clearTimeout(tapTimer);
+                    tapTimer = setTimeout(() => {
+                        ingredientsTooltip.classList.remove('show');
+                    }, 5000);
+                }
+            });
+
+            // Close tooltip when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!ingredientsHeader.contains(e.target)) {
+                    ingredientsTooltip.classList.remove('show');
+                }
+            });
+        }
+
+        // Close sidebar when selecting a chat on mobile
+        function selectChatMobile(id) {
+            currentChatId = id;
+            loadMessages(id);
+            loadChats(id);
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const config = await api('/api/config');
+                document.getElementById('model-name').textContent = config.model;
+                document.getElementById('api-base').textContent = config.api_base;
+            } catch (err) {
+                console.error('Failed to load config:', err);
+            }
+        }
+        async function loadIngredientCount() {
+            try {
+                const data = await api('/api/ingredients/count');
+                const countEl = document.getElementById('ingredient-count');
+                countEl.textContent = data.count > 0 ? `${data.count} ingredients loaded` : 'No data loaded';
+            } catch (err) {
+                console.error('Failed to load ingredient count:', err);
+                document.getElementById('ingredient-count').textContent = 'Error loading count';
+            }
+        }
+        async function loadIngredientCount() {
+            try {
+                const data = await api('/api/ingredients/count');
+                const countEl = document.getElementById('ingredient-count');
+                countEl.textContent = data.count > 0 ? `${data.count} ingredients loaded` : 'No data loaded';
+            } catch (err) {
+                console.error('Failed to load ingredient count:', err);
+                document.getElementById('ingredient-count').textContent = 'Error loading count';
+            }
+        }
+
+        async function api(path, options = {}) {
+            const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+            if (!res.ok) throw new Error(await res.text());
+            return res.headers.get('content-type')?.includes('json') ? res.json() : res.text();
+        }
+
+        function renderChats(chats) {
+            chatList.innerHTML = '';
+            chats.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+                const title = document.createElement('div');
+                title.className = 'chat-title';
+                title.textContent = chat.title;
+                const actions = document.createElement('div');
+                actions.className = 'chat-actions';
+                const rename = document.createElement('button');
+                rename.className = 'icon-btn';
+                rename.textContent = '✏️';
+                rename.onclick = async (e) => {
+                    e.stopPropagation();
+                    const next = prompt('Rename chat', chat.title);
+                    if (next && next.trim()) {
+                        await api(`/api/chats/${chat.id}`, { method: 'PATCH', body: JSON.stringify({ title: next.trim() }) });
+                        loadChats(chat.id);
+                    }
+                };
+                const del = document.createElement('button');
+                del.className = 'icon-btn danger';
+                del.textContent = '🗑';
+                del.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (confirm('Delete this chat?')) {
+                        await api(`/api/chats/${chat.id}`, { method: 'DELETE' });
+                        if (currentChatId === chat.id) currentChatId = null;
+                        loadChats();
+                        messagesEl.innerHTML = '';
+                    }
+                };
+                actions.append(rename, del);
+                item.append(title, actions);
+                item.onclick = () => selectChatMobile(chat.id);
+                chatList.appendChild(item);
+            });
+        }
+
+        async function loadChats(selectId) {
+            const chats = await api('/api/chats');
+            if (selectId) currentChatId = selectId;
+            if (!currentChatId && chats.length) currentChatId = chats[0].id;
+            renderChats(chats);
+            if (currentChatId) loadMessages(currentChatId);
+        }
+
+        async function selectChat(id) {
+            currentChatId = id;
+            await loadMessages(id);
+            loadChats(id);
+        }
+
+        function renderMessages(messages) {
+            messagesEl.innerHTML = '';
+            messages.forEach(msg => {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble ' + msg.role;
+
+                if (msg.role === 'assistant') {
+                    // Render markdown for assistant messages
+                    const htmlContent = marked.parse(msg.content);
+                    bubble.innerHTML = DOMPurify.sanitize(htmlContent);
+                } else {
+                    // Plain text for user messages
+                    bubble.textContent = msg.content;
+                }
+
+                messagesEl.appendChild(bubble);
+            });
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        async function loadMessages(id) {
+            const messages = await api(`/api/chats/${id}/messages`);
+            renderMessages(messages);
+        }
+
+        async function sendMessage(content) {
+            if (!currentChatId) {
+                const created = await api('/api/chats', { method: 'POST', body: JSON.stringify({}) });
+                currentChatId = created.id;
+                loadChats(currentChatId);
+            }
+            const payload = { content };
+            const res = await api(`/api/chats/${currentChatId}/messages`, { method: 'POST', body: JSON.stringify(payload) });
+            await loadMessages(currentChatId);
+            return res;
+        }
+
+        document.getElementById('new-chat').onclick = async () => {
+            const created = await api('/api/chats', { method: 'POST', body: JSON.stringify({}) });
+            currentChatId = created.id;
+            await loadChats(currentChatId);
+            messagesEl.innerHTML = '';
+        };
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = input.value.trim();
+            if (!content) return;
+            input.value = '';
+            const userBubble = document.createElement('div');
+            userBubble.className = 'bubble user';
+            userBubble.textContent = content;
+            messagesEl.appendChild(userBubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            // Show loading indicator
+            const loadingBubble = document.createElement('div');
+            loadingBubble.className = 'bubble loading';
+            const loadingText = document.createElement('span');
+            loadingText.className = 'loading-dots';
+            loadingText.textContent = 'Waiting for a response';
+            loadingBubble.appendChild(loadingText);
+            messagesEl.appendChild(loadingBubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const { assistant_message } = await sendMessage(content);
+                // Remove loading indicator
+                loadingBubble.remove();
+                const botBubble = document.createElement('div');
+                botBubble.className = 'bubble assistant';
+                // Render markdown for assistant message
+                const htmlContent = marked.parse(assistant_message);
+                botBubble.innerHTML = DOMPurify.sanitize(htmlContent);
+                messagesEl.appendChild(botBubble);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } catch (err) {
+                loadingBubble.remove();
+                alert('Error sending message: ' + err.message);
+            }
+        });
+
+        document.getElementById('upload-btn').onclick = () => {
+            document.getElementById('file-input').click();
+        };
+
+        document.getElementById('file-input').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/ingredients/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || 'Upload failed');
+                }
+
+                const result = await res.json();
+                alert(`✅ ${result.message}`);
+                loadIngredientCount();
+            } catch (err) {
+                alert(`❌ Upload failed: ${err.message}`);
+            }
+
+            e.target.value = '';
+        };
+
+        document.getElementById('download-btn').onclick = async () => {
+            try {
+                const res = await fetch('/api/ingredients/download');
+                if (!res.ok) throw new Error('Download failed');
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ingredients.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                alert(`❌ Download failed: ${err.message}`);
+            }
+        };
+
+        loadChats();
+        loadConfig();
+        loadIngredientCount();
+    </script>
+</body>
+
+</html>
