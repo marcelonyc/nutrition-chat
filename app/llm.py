@@ -16,7 +16,8 @@ class LLMService:
         self.client = ollama.Client(**client_kwargs)
 
     def chat(
-        self, history: Iterable[models.Message], user_message: str, ingredients: list[models.Ingredient] | None = None
+        self, history: Iterable[models.Message], user_message: str, ingredients: list[models.Ingredient] | None = None,
+        user_settings: models.UserSettings | None = None
     ) -> str:
         # Build messages list for chat API
         messages = []
@@ -32,6 +33,12 @@ class LLMService:
                 ingredient_data += f"- {ing.name}: {ing.calories_per_gram:.2f} cal, {ing.protein_per_gram:.2f}g protein, {ing.fat_per_gram:.2f}g fat, {ing.carbs_per_gram:.2f}g carbs\n"
             add_content += ingredient_data
             add_content += "\n\nSearch other ingredients is they are not found in the list above."
+        
+        
+        if user_settings and user_settings.macro_enabled:
+            macro_text = f"\n\nMeal composition must be {user_settings.protein_pct}% protein, {user_settings.carbs_pct}% carbs, {user_settings.fat_pct}% fat."
+            user_message = user_message + macro_text
+
         
         if system_content:
             messages.append({

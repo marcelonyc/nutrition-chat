@@ -142,7 +142,7 @@ def get_chat(db: Session, chat_id: int, user_id: int) -> models.ChatSession | No
 
 
 def create_chat(db: Session, user_id: int, title: str | None = None) -> models.ChatSession:
-    chat = models.ChatSession(user_id=user_id, title=title or "New Chat")
+    chat = models.ChatSession(user_id=user_id, title=title or "New Meal")
     db.add(chat)
     db.commit()
     db.refresh(chat)
@@ -207,3 +207,57 @@ def bulk_create_ingredients(db: Session, user_id: int, ingredients_data: list[di
     ]
     db.bulk_save_objects(ingredients)
     db.commit()
+
+
+# User Settings operations
+def get_user_settings(db: Session, user_id: int) -> Optional[models.UserSettings]:
+    """Get user settings, create default if not exists."""
+    settings = db.query(models.UserSettings).filter(
+        models.UserSettings.user_id == user_id
+    ).first()
+    
+    if not settings:
+        settings = create_default_settings(db, user_id)
+    
+    return settings
+
+
+def create_default_settings(db: Session, user_id: int) -> models.UserSettings:
+    """Create default settings for a user."""
+    settings = models.UserSettings(
+        user_id=user_id,
+        macro_enabled=False,
+        protein_pct=None,
+        carbs_pct=None,
+        fat_pct=None
+    )
+    db.add(settings)
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+
+def update_user_settings(
+    db: Session,
+    user_id: int,
+    macro_enabled: Optional[bool] = None,
+    protein_pct: Optional[int] = None,
+    carbs_pct: Optional[int] = None,
+    fat_pct: Optional[int] = None
+) -> models.UserSettings:
+    """Update user settings."""
+    settings = get_user_settings(db, user_id)
+    
+    if macro_enabled is not None:
+        settings.macro_enabled = macro_enabled
+    if protein_pct is not None:
+        settings.protein_pct = protein_pct
+    if carbs_pct is not None:
+        settings.carbs_pct = carbs_pct
+    if fat_pct is not None:
+        settings.fat_pct = fat_pct
+    
+    settings.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(settings)
+    return settings

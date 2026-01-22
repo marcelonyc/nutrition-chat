@@ -89,7 +89,7 @@ uvicorn app.main:app --reload --host 0.0.0.0
   - In production, tokens should be sent via email
 
 ### Managing Chats
-- **New Chat**: Click "+ New Chat" button
+ - **New Meal**: Click "+ New Meal" button
 - **Rename**: Click ✏️ icon on any chat
 - **Delete**: Click 🗑️ icon and confirm
 - **Switch Chat**: Click on any chat in the list
@@ -126,7 +126,7 @@ Almonds,5.79,0.21,0.50,0.22
 
 ### Chats (Protected)
 - `GET /api/chats` - List user's chats
-- `POST /api/chats` - Create new chat
+- `POST /api/chats` - Create new meal
 - `PATCH /api/chats/{id}` - Rename chat
 - `DELETE /api/chats/{id}` - Delete chat
 - `GET /api/chats/{id}/messages` - Get chat messages

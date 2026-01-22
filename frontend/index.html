@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nutrition Chat</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🥗</text></svg>" />
     <style>
         :root {
             --bg: #0f172a;
@@ -14,6 +16,7 @@
             --muted: #9ca3af;
             --accent: #38bdf8;
             --danger: #f87171;
+            --mobile-header-h: 48px;
         }
 
         * {
@@ -26,8 +29,10 @@
             background: radial-gradient(circle at 20% 20%, #12203a, #0b1224 55%);
             color: var(--text);
             height: 100vh;
+            height: 100dvh;
             display: flex;
             overflow: hidden;
+            position: relative;
         }
 
         .mobile-header {
@@ -226,6 +231,40 @@
         .tooltip-content ul {
             margin: 6px 0;
             padding-left: 18px;
+        }
+
+        /* Help note styles */
+        .help-note {
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px 16px;
+        }
+
+        .help-btn {
+            background: var(--card);
+            border: 1px solid #293447;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: var(--text);
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+
+        .help-btn:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        #help-tooltip {
+            left: auto;
+            right: 16px;
+            max-width: 600px;
         }
 
         .tooltip-content li {
@@ -543,6 +582,267 @@
             min-height: 60px;
         }
 
+        /* Settings Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--card);
+            border-radius: 8px;
+        }
+
+        .settings-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #374151;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background-color: var(--accent);
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .macro-inputs {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .macro-inputs.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--panel);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .success-message {
+            color: var(--accent);
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .btn-settings {
+            background: var(--card);
+            border: 1px solid #293447;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 120ms ease;
+        }
+
+        .btn-settings:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* Ingredients Table Modal Styles */
+        .modal-wide {
+            max-width: 900px;
+        }
+
+        .table-container {
+            overflow: auto;
+            max-height: 70vh;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+
+        .ingredients-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .ingredients-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--card);
+            z-index: 10;
+        }
+
+        .ingredients-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 2px solid #374151;
+            white-space: nowrap;
+        }
+
+        .ingredients-table tbody tr {
+            border-bottom: 1px solid #374151;
+            transition: background-color 0.2s;
+        }
+
+        .ingredients-table tbody tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .ingredients-table td {
+            padding: 12px 16px;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .ingredients-table td:first-child {
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .ingredients-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        /* Removed malformed mobile media block */
+
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
@@ -550,13 +850,16 @@
 
             .mobile-header {
                 display: flex;
+                height: var(--mobile-header-h);
+                min-height: var(--mobile-header-h);
+                align-items: center;
             }
 
             .sidebar {
                 position: fixed;
-                top: 0;
+                top: var(--mobile-header-h);
                 left: 0;
-                height: 100vh;
+                height: calc(100dvh - var(--mobile-header-h));
                 z-index: 1000;
                 transform: translateX(-100%);
                 box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
@@ -595,7 +898,16 @@
 
             .main {
                 flex: 1;
-                height: 100%;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                min-height: 0;
+                position: relative;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                flex-shrink: 0;
+                position: relative;
             }
 
             .brand {
@@ -617,10 +929,12 @@
             textarea {
                 font-size: 16px;
                 min-height: 50px;
+                max-height: 150px;
             }
 
             footer {
                 padding: 6px 16px;
+                flex-shrink: 0;
                 flex-direction: column;
                 gap: 4px;
                 font-size: 11px;
@@ -656,8 +970,9 @@
             </div>
             <button class="btn-logout" id="logout-btn" title="Logout">🚪</button>
         </div>
-        <button class="btn" id="new-chat">+ New Chat</button>
+        <button class="btn" id="new-chat">+ New Meal</button>
         <div class="chat-list" id="chat-list"></div>
+        <button class="btn-settings" id="settings-btn">⚙️ Settings</button>
         <div class="ingredients-section">
             <div class="ingredients-header" id="ingredients-header">
                 📊 Ingredient Data
@@ -677,12 +992,24 @@
             <div class="ingredients-actions">
                 <button class="btn-secondary" id="upload-btn">📤 Upload CSV</button>
                 <button class="btn-secondary" id="download-btn">📥 Download CSV</button>
+                <button class="btn-secondary" id="view-table-btn">📋 View Table</button>
                 <input type="file" id="file-input" accept=".csv" />
                 <div class="ingredient-count" id="ingredient-count">Loading...</div>
             </div>
         </div>
     </aside>
     <main class="main">
+        <div class="help-note">
+            <button class="help-btn" id="help-btn" title="Help">❓</button>
+            <div class="tooltip" id="help-tooltip">
+                <div class="tooltip-content">
+                    Get a balanced set of ingredients to prep your meal. Type or read a list of ingredients and a list
+                    of grams per ingredients based on your macro requirements will display. You can set you macro
+                    requirements in Settings or type them in your chat message. In addition to the ingredients, also
+                    mention the amount of calories you want the meal to have
+                </div>
+            </div>
+        </div>
         <div class="messages" id="messages"></div>
         <form id="chat-form">
             <textarea id="input" placeholder="Ask something..." required></textarea>
@@ -693,6 +1020,85 @@
             <span>🌐 API: <strong id="api-base">Loading...</strong></span>
         </footer>
     </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" id="close-settings">×</button>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Macro Composition</div>
+                <div class="settings-toggle">
+                    <span class="toggle-label">Enable macro composition tracking</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="macro-enabled">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="macro-inputs" id="macro-inputs">
+                    <div class="input-group">
+                        <label class="input-label" for="protein-pct">Protein Percentage</label>
+                        <input type="number" id="protein-pct" class="input-field" min="0" max="100"
+                            placeholder="e.g., 30">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="carbs-pct">Carbs Percentage</label>
+                        <input type="number" id="carbs-pct" class="input-field" min="0" max="100"
+                            placeholder="e.g., 40">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="fat-pct">Fat Percentage</label>
+                        <input type="number" id="fat-pct" class="input-field" min="0" max="100" placeholder="e.g., 30">
+                    </div>
+
+                    <div class="input-hint">All percentages must sum to 100%</div>
+                </div>
+
+                <div id="settings-error" class="error-message" style="display: none;"></div>
+                <div id="settings-success" class="success-message" style="display: none;"></div>
+
+                <button class="btn" id="save-settings" style="margin-top: 16px;">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ingredients Table Modal -->
+    <div class="modal-overlay" id="ingredients-table-modal">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <div class="modal-title">Ingredients Data</div>
+                <button class="modal-close" id="close-ingredients-table">×</button>
+            </div>
+
+            <div class="table-container">
+                <table class="ingredients-table" id="ingredients-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Calories (per gram)</th>
+                            <th>Protein (per gram)</th>
+                            <th>Fat (per gram)</th>
+                            <th>Carbs (per gram)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ingredients-table-body">
+                        <!-- Table rows will be inserted here -->
+                    </tbody>
+                </table>
+                <div id="no-ingredients-message"
+                    style="display: none; text-align: center; padding: 40px; color: var(--muted);">
+                    No ingredients loaded. Upload a CSV file to get started.
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <script>
@@ -780,6 +1186,108 @@
         document.getElementById('logout-btn').addEventListener('click', () => {
             if (confirm('Are you sure you want to logout?')) {
                 logout();
+            }
+        });
+
+        // Settings Modal
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeSettings = document.getElementById('close-settings');
+        const macroEnabled = document.getElementById('macro-enabled');
+        const macroInputs = document.getElementById('macro-inputs');
+        const saveSettingsBtn = document.getElementById('save-settings');
+
+        // Load and display current settings
+        async function loadSettings() {
+            try {
+                const settings = await api('/api/settings');
+                macroEnabled.checked = settings.macro_enabled;
+                document.getElementById('protein-pct').value = settings.protein_pct || '';
+                document.getElementById('carbs-pct').value = settings.carbs_pct || '';
+                document.getElementById('fat-pct').value = settings.fat_pct || '';
+
+                if (settings.macro_enabled) {
+                    macroInputs.classList.add('active');
+                }
+            } catch (err) {
+                console.error('Failed to load settings:', err);
+            }
+        }
+
+        // Open settings modal
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('active');
+            loadSettings();
+        });
+
+        // Close settings modal
+        closeSettings.addEventListener('click', () => {
+            settingsModal.classList.remove('active');
+        });
+
+        // Close modal when clicking overlay
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('active');
+            }
+        });
+
+        // Toggle macro inputs visibility
+        macroEnabled.addEventListener('change', () => {
+            if (macroEnabled.checked) {
+                macroInputs.classList.add('active');
+            } else {
+                macroInputs.classList.remove('active');
+            }
+        });
+
+        // Save settings
+        saveSettingsBtn.addEventListener('click', async () => {
+            const errorEl = document.getElementById('settings-error');
+            const successEl = document.getElementById('settings-success');
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            const settings = {
+                macro_enabled: macroEnabled.checked
+            };
+
+            if (macroEnabled.checked) {
+                const proteinPct = parseInt(document.getElementById('protein-pct').value);
+                const carbsPct = parseInt(document.getElementById('carbs-pct').value);
+                const fatPct = parseInt(document.getElementById('fat-pct').value);
+
+                if (isNaN(proteinPct) || isNaN(carbsPct) || isNaN(fatPct)) {
+                    errorEl.textContent = 'All percentage fields are required when macro composition is enabled';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                const total = proteinPct + carbsPct + fatPct;
+                if (total !== 100) {
+                    errorEl.textContent = `Percentages must sum to 100% (current: ${total}%)`;
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                settings.protein_pct = proteinPct;
+                settings.carbs_pct = carbsPct;
+                settings.fat_pct = fatPct;
+            }
+
+            try {
+                await api('/api/settings', {
+                    method: 'PUT',
+                    body: JSON.stringify(settings)
+                });
+                successEl.textContent = 'Settings saved successfully!';
+                successEl.style.display = 'block';
+                setTimeout(() => {
+                    settingsModal.classList.remove('active');
+                }, 1500);
+            } catch (err) {
+                errorEl.textContent = err.message || 'Failed to save settings';
+                errorEl.style.display = 'block';
             }
         });
 
@@ -1082,6 +1590,35 @@
             e.target.value = '';
         };
 
+        // Help tooltip behavior
+        const helpBtn = document.getElementById('help-btn');
+        const helpTooltip = document.getElementById('help-tooltip');
+
+        function showHelp() {
+            helpTooltip.classList.add('show');
+        }
+
+        function hideHelp() {
+            helpTooltip.classList.remove('show');
+        }
+
+        helpBtn.addEventListener('mouseenter', showHelp);
+        helpBtn.addEventListener('mouseleave', hideHelp);
+        helpBtn.addEventListener('click', () => {
+            if (helpTooltip.classList.contains('show')) {
+                hideHelp();
+            } else {
+                showHelp();
+            }
+        });
+
+        // Hide help when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!helpTooltip.contains(e.target) && e.target !== helpBtn) {
+                hideHelp();
+            }
+        });
+
         document.getElementById('download-btn').onclick = async () => {
             const token = getToken();
             if (!token) {
@@ -1116,6 +1653,64 @@
                 alert(`❌ Download failed: ${err.message}`);
             }
         };
+
+        // Ingredients Table Modal
+        const ingredientsTableModal = document.getElementById('ingredients-table-modal');
+        const viewTableBtn = document.getElementById('view-table-btn');
+        const closeIngredientsTable = document.getElementById('close-ingredients-table');
+
+        // Load and display ingredients in table
+        async function loadIngredientsTable() {
+            try {
+                const ingredients = await api('/api/ingredients');
+                const tableBody = document.getElementById('ingredients-table-body');
+                const noIngredientsMsg = document.getElementById('no-ingredients-message');
+
+                tableBody.innerHTML = '';
+
+                if (!ingredients || ingredients.length === 0) {
+                    noIngredientsMsg.style.display = 'block';
+                    tableBody.parentElement.style.display = 'none';
+                    return;
+                }
+
+                noIngredientsMsg.style.display = 'none';
+                tableBody.parentElement.style.display = 'table';
+
+                ingredients.forEach(ingredient => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${ingredient.name}</td>
+                        <td>${ingredient.calories_per_gram.toFixed(2)}</td>
+                        <td>${ingredient.protein_per_gram.toFixed(2)}</td>
+                        <td>${ingredient.fat_per_gram.toFixed(2)}</td>
+                        <td>${ingredient.carbs_per_gram.toFixed(2)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Failed to load ingredients:', err);
+                alert('Failed to load ingredients table');
+            }
+        }
+
+        // Open ingredients table modal
+        viewTableBtn.addEventListener('click', () => {
+            ingredientsTableModal.classList.add('active');
+            loadIngredientsTable();
+        });
+
+        // Close ingredients table modal
+        closeIngredientsTable.addEventListener('click', () => {
+            ingredientsTableModal.classList.remove('active');
+        });
+
+        // Close modal when clicking overlay
+        ingredientsTableModal.addEventListener('click', (e) => {
+            if (e.target === ingredientsTableModal) {
+                ingredientsTableModal.classList.remove('active');
+            }
+        });
 
         // Initialize app
         loadUserProfile();

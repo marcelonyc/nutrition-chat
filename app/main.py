@@ -341,16 +341,21 @@ def send_message(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
+    # Get user settings to check for macro composition
+    settings = crud.get_user_settings(db, user_id=current_user.id)
+    
+    user_content = payload.content
+
     history = crud.list_messages(db, chat_id)
     user_message = crud.add_message(
-        db, chat, role="user", content=payload.content
+        db, chat, role="user", content=user_content
     )
 
     # Get ingredient data for context (user-specific)
     ingredients = crud.list_ingredients(db, user_id=current_user.id)
 
     assistant_reply = llm_service.chat(
-        [*history, user_message], payload.content, ingredients=ingredients
+        [*history, user_message], user_content, ingredients=ingredients, user_settings=settings
     )
     assistant_message = crud.add_message(
         db, chat, role="assistant", content=assistant_reply
@@ -445,6 +450,64 @@ def get_ingredients_count(
     """Get count of loaded ingredients"""
     ingredients = crud.list_ingredients(db, user_id=current_user.id)
     return {"count": len(ingredients)}
+
+
+@app.get("/api/ingredients", response_model=list[schemas.IngredientRead])
+def list_ingredients(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get list of all ingredients for current user"""
+    ingredients = crud.list_ingredients(db, user_id=current_user.id)
+    return ingredients
+
+
+# ============================================================================
+# User Settings Endpoints (Protected)
+# ============================================================================
+
+@app.get("/api/settings", response_model=schemas.UserSettingsResponse)
+def get_settings(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user settings."""
+    settings = crud.get_user_settings(db, user_id=current_user.id)
+    return settings
+
+
+@app.put("/api/settings", response_model=schemas.UserSettingsResponse)
+def update_settings(
+    settings_data: schemas.UserSettingsUpdate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update user settings."""
+    # Validate sum if macro enabled and all percentages provided
+    if settings_data.macro_enabled:
+        if settings_data.protein_pct is None or settings_data.carbs_pct is None or settings_data.fat_pct is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="All macro percentages (protein, carbs, fat) are required when macro composition is enabled"
+            )
+        
+        try:
+            settings_data.validate_sum()
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    
+    settings = crud.update_user_settings(
+        db,
+        user_id=current_user.id,
+        macro_enabled=settings_data.macro_enabled,
+        protein_pct=settings_data.protein_pct,
+        carbs_pct=settings_data.carbs_pct,
+        fat_pct=settings_data.fat_pct
+    )
+    return settings
 
 
 # ============================================================================

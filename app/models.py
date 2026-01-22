@@ -30,6 +30,12 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    settings = relationship(
+        "UserSettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
 
 class ChatSession(Base):
@@ -42,7 +48,7 @@ class ChatSession(Base):
         nullable=False,
         index=True
     )
-    title = Column(String(255), default="New Chat")
+    title = Column(String(255), default="New Meal")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -92,3 +98,26 @@ class Ingredient(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="ingredients")
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+    macro_enabled = Column(Boolean, default=False)
+    protein_pct = Column(Integer, nullable=True)  # Percentage
+    carbs_pct = Column(Integer, nullable=True)    # Percentage
+    fat_pct = Column(Integer, nullable=True)      # Percentage
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    
+    user = relationship("User", back_populates="settings")
